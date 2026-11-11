@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>geo-test — temporary diagnostic</title>
+</head>
+<body style="font-family:monospace;font-size:18px;padding:24px;line-height:1.7">
+<h1>geo-test (temporary diagnostic — delete after use)</h1>
+<pre id="out">running…</pre>
+<script>
+var el = document.getElementById('out');
+var lines = [];
+function log(s){ lines.push(s); el.textContent = lines.join('\n'); }
+function fetchTimeout(url, ms, asJson){
+  var c = new AbortController();
+  var t = setTimeout(function(){ c.abort(); }, ms);
+  return fetch(url, {signal: c.signal}).then(function(r){
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    return asJson ? r.json() : r.text();
+  }).finally(function(){ clearTimeout(t); });
+}
+function timed(name, fn){
+  var t0 = performance.now();
+  return fn().then(function(v){
+    log(name + ': ' + JSON.stringify(v) + ' (' + Math.round(performance.now()-t0) + 'ms)');
+    return v;
+  }).catch(function(e){
+    log(name + ': ERROR ' + e.name + ' ' + (e.message||'') + ' (' + Math.round(performance.now()-t0) + 'ms)');
+    return null;
+  });
+}
+function traceIso(ms){
+  return fetchTimeout('https://www.cloudflare.com/cdn-cgi/trace', ms, false).then(function(t){
+    var l = t.split('\n').find(function(x){ return x.indexOf('loc=') === 0; });
+    return l ? l.slice(4) : '(no loc line)';
+  });
+}
+(async function(){
+  log('online: ' + navigator.onLine);
+  log('userAgent: ' + navigator.userAgent.slice(0, 80));
+  // The OLD chain, exactly as the first fix shipped it (2.5s legs, trace -> ip-api)
+  var oldIso = await timed('OLD trace-2.5s', function(){ return traceIso(2500); });
+  if(!oldIso || oldIso === '(no loc line)'){
+    await timed('OLD ipapi-2.5s', function(){
+      return fetchTimeout('https://ip-api.com/json/?fields=status,countryCode', 2500, true)
+        .then(function(j){ return j.status === 'success' ? j.countryCode : 'status=' + j.status; });
+    });
+  }
+  // Each provider alone, generous timeout — which legs actually work in-page?
+  await timed('trace-10s', function(){ return traceIso(10000); });
+  await timed('ipwho-10s', function(){
+    return fetchTimeout('https://ipwho.is/', 10000, true).then(function(j){ return j.country_code; });
+  });
+  await timed('geojs-10s', function(){
+    return fetchTimeout('https://get.geojs.io/v1/ip/country.json', 10000, true).then(function(j){ return j.country; });
+  });
+  await timed('ipapi-10s', function(){
+    return fetchTimeout('https://ip-api.com/json/?fields=status,countryCode', 10000, true)
+      .then(function(j){ return j.status === 'success' ? j.countryCode : 'status=' + j.status; });
+  });
+  log('DONE');
+})();
+</script>
+</body>
+</html>
