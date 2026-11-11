@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { tasksApi, getApiError } from '../../api';
 import { mapTaskForUi } from '../../utils/apiMappers';
+import { compressScreenshot } from '../../utils/compressImage';
 import { useMoney } from '../../hooks/useMoney';
 import type { UiTask, TaskSubmission } from '../../types';
 import { PlatformPreview } from '../../components/task/PlatformPreview';
@@ -57,6 +58,7 @@ export const TaskDetailPage: React.FC = () => {
   const [note, setNote] = useState('');
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [screenshotName, setScreenshotName] = useState<string | null>(null);
+  const [preparingScreenshot, setPreparingScreenshot] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submission, setSubmission] = useState<TaskSubmission | null>(null);
@@ -140,19 +142,38 @@ export const TaskDetailPage: React.FC = () => {
     }
   };
 
-  const handleFile = (file: File | undefined) => {
+  const handleFile = async (file: File | undefined) => {
     if (!file) return;
     if (file.size > 8 * 1024 * 1024) {
       setSubmitError('Screenshot must be under 8 MB.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setScreenshot(reader.result as string);
+    setSubmitError(null);
+    setPreparingScreenshot(true);
+    try {
+      // Shrink the screenshot in the browser first: the server rejects
+      // request bodies over ~1 MB (Apache 413), and the 413 carries no
+      // CORS headers, so the browser reports it as "Can't reach the
+      // server". A raw phone screenshot is routinely 1–5 MB.
+      const dataUrl = await compressScreenshot(file);
+      if (dataUrl.length > 950_000) {
+        setSubmitError('That screenshot is still too large to send — please crop it to just the post and try again.');
+        return;
+      }
+      setScreenshot(dataUrl);
       setScreenshotName(file.name);
-      setSubmitError(null);
-    };
-    reader.readAsDataURL(file);
+    } catch {
+      // Compression failed (unreadable image) — fall back to the raw file
+      // so the user can still try; the server may reject it if too large.
+      const reader = new FileReader();
+      reader.onload = () => {
+        setScreenshot(reader.result as string);
+        setScreenshotName(file.name);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setPreparingScreenshot(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -483,15 +504,20 @@ export const TaskDetailPage: React.FC = () => {
                     </div>
                   ) : (
                     <label htmlFor="proof-screenshot" className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-gray-200 dark:border-white/10 hover:border-[#168BFF] rounded-2xl p-6 cursor-pointer transition-colors bg-gray-50/50">
-                      <Upload className="w-6 h-6 text-gray-400 dark:text-gray-500" />
-                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">Tap to upload screenshot</span>
+                      {preparingScreenshot ? (
+                        <Loader2 className="w-6 h-6 text-gray-400 dark:text-gray-500 animate-spin" />
+                      ) : (
+                        <Upload className="w-6 h-6 text-gray-400 dark:text-gray-500" />
+                      )}
+                      <span className="text-xs font-bold text-gray-700 dark:text-gray-300">{preparingScreenshot ? 'Preparing screenshot…' : 'Tap to upload screenshot'}</span>
                       <span className="text-[10px] text-gray-400 dark:text-gray-500">PNG or JPG, up to 8 MB — sent with your submission</span>
                       <input
                         id="proof-screenshot"
                         type="file"
                         accept="image/png,image/jpeg,image/webp"
                         className="hidden"
-                        onChange={(e) => handleFile(e.target.files?.[0])}
+                        disabled={preparingScreenshot}
+                        onChange={(e) => void handleFile(e.target.files?.[0])}
                       />
                     </label>
                   )}
