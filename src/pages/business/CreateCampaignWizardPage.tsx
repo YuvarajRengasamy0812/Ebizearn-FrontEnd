@@ -189,7 +189,11 @@ export const CreateCampaignWizardPage: React.FC = () => {
   /** Upload / remove the post image for a saved campaign. Returns an error text or null. */
   const syncPostImage = async (campaignId: number | string): Promise<string | null> => {
     try {
-      if (postImageFile && contentMode !== 'none') {
+      // The image is the creative itself — it uploads in every mode,
+      // including "No post text" (image-only tasks). It used to be skipped
+      // unless a post-text mode was picked, so image-only campaigns went
+      // live with no image attached at all.
+      if (postImageFile) {
         const res = await businessApi.uploadContentImage(campaignId, postImageFile);
         setPostImageUrl(res.data?.content_image_url ?? null);
         setPostImageFile(null);
@@ -1020,19 +1024,6 @@ export const CreateCampaignWizardPage: React.FC = () => {
               </p>
             )}
             {genError && <p className="text-[11px] font-bold text-red-600 dark:text-red-400">{genError}</p>}
-            <div>
-              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Post image <span className="font-normal text-gray-400">(optional)</span></label>
-              <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">Contributors see this image above the post text and can download it to post with it.</p>
-              <PostImagePicker
-                currentUrl={removePostImage ? null : postImageUrl}
-                file={postImageFile}
-                onFile={(f) => {
-                  setPostImageFile(f);
-                  if (f) setRemovePostImage(false);
-                }}
-                onRemoveCurrent={() => setRemovePostImage(true)}
-              />
-            </div>
             {(contentMode === 'manual' || generatedContent) && (
               <div>
                 <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">
@@ -1059,6 +1050,22 @@ export const CreateCampaignWizardPage: React.FC = () => {
             {err('generated_content') && <p className="text-[11px] font-bold text-red-600 dark:text-red-400">{err('generated_content')}</p>}
             </>
             )}
+            {/* Post image — outside the post-text gate: the image is the
+                creative itself, so image-only tasks ("No post text") need
+                it just as much. Contributors download it from the task page. */}
+            <div>
+              <label className="text-xs font-bold text-gray-700 dark:text-gray-300 block mb-1">Post image <span className="font-normal text-gray-400">(optional)</span></label>
+              <p className="text-[11px] text-gray-500 dark:text-gray-400 mb-1.5">The image contributors download and post. It shows on the task page with a download button.</p>
+              <PostImagePicker
+                currentUrl={removePostImage ? null : postImageUrl}
+                file={postImageFile}
+                onFile={(f) => {
+                  setPostImageFile(f);
+                  if (f) setRemovePostImage(false);
+                }}
+                onRemoveCurrent={() => setRemovePostImage(true)}
+              />
+            </div>
           </div>
 
           <div>

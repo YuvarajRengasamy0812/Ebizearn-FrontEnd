@@ -16,6 +16,7 @@ import { useMoney } from '../../hooks/useMoney';
 import { FxNote } from '../../components/common/Money';
 import { EmptyState } from '../../components/common/EmptyState';
 import { CreatedBy } from '../../components/common/CreatedBy';
+import { PostImagePicker } from '../../components/campaign/PostImagePicker';
 
 export const BusinessCampaignDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -26,6 +27,44 @@ export const BusinessCampaignDetailPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [toggling, setToggling] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageBusy, setImageBusy] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  /** Attach / replace the post image on a live campaign (uploads at once). */
+  const handleImageFile = async (f: File | null) => {
+    setImageFile(f);
+    if (!f || !campaign) return;
+    setImageBusy(true);
+    setImageError(null);
+    try {
+      const res = await businessApi.uploadContentImage(campaign.id, f);
+      if (res.success) {
+        setCampaign({ ...campaign, content_image_url: res.data?.content_image_url ?? null });
+        setImageFile(null);
+      } else {
+        setImageError(res.message || 'Image could not be uploaded.');
+      }
+    } catch (e) {
+      setImageError(getApiError(e, 'Image could not be uploaded.'));
+    } finally {
+      setImageBusy(false);
+    }
+  };
+
+  const handleRemoveImage = async () => {
+    if (!campaign) return;
+    setImageBusy(true);
+    setImageError(null);
+    try {
+      await businessApi.removeContentImage(campaign.id);
+      setCampaign({ ...campaign, content_image_url: null });
+    } catch (e) {
+      setImageError(getApiError(e, 'Image could not be removed.'));
+    } finally {
+      setImageBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -168,14 +207,28 @@ export const BusinessCampaignDetailPage: React.FC = () => {
               {campaign.content_status === 'rejected' && campaign.content_review_note && (
                 <p className="text-[11px] text-red-600 dark:text-red-400 mt-1">Reason: {campaign.content_review_note}. Contact support to update the text.</p>
               )}
-              {campaign.content_image_url && (
-                <img src={campaign.content_image_url} alt="Post image" className="mt-2 w-full max-w-sm max-h-60 object-contain rounded-xl bg-white dark:bg-white/5 border border-violet-200/60 dark:border-violet-500/20" />
-              )}
               {campaign.generated_content && (
                 <p className="text-xs text-gray-600 dark:text-gray-300 whitespace-pre-wrap mt-1.5">{campaign.generated_content}</p>
               )}
             </div>
           )}
+          {/* Post image — always available, not only with post text. This is
+              the creative contributors download and post; without it the
+              task page shows "No image attached". */}
+          <div className="mt-3 rounded-xl border border-violet-200 dark:border-violet-500/25 bg-violet-500/5 p-3 max-w-2xl">
+            <p className="text-xs font-bold text-gray-700 dark:text-gray-200">Post image</p>
+            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5 mb-2">
+              Contributors download this image and post it. It shows on the task page with a download button.
+            </p>
+            <PostImagePicker
+              currentUrl={campaign.content_image_url}
+              file={imageFile}
+              onFile={(f) => void handleImageFile(f)}
+              onRemoveCurrent={() => void handleRemoveImage()}
+              busy={imageBusy}
+              error={imageError}
+            />
+          </div>
           {campaign.instructions_markdown && (
             <details className="mt-3 text-xs text-gray-600 dark:text-gray-400">
               <summary className="font-bold cursor-pointer text-[#168BFF]">Contributor instructions</summary>
