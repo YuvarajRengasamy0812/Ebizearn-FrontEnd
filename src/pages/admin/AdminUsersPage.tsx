@@ -17,7 +17,13 @@ export const AdminUsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(searchParams.get('search') || '');
-  const [role, setRole] = useState('all');
+  /* Deep-linkable role filter: /admin/users?role=contributor (used by the
+     Admin Overview "Total contributors" card). Unknown values fall back
+     to 'all' so a bad link never sends a bogus role to the API. */
+  const [role, setRole] = useState(() => {
+    const r = searchParams.get('role') || 'all';
+    return ['all', 'contributor', 'business', 'moderator', 'admin', 'superadmin'].includes(r) ? r : 'all';
+  });
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [actionId, setActionId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);

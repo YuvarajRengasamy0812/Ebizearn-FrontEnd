@@ -129,20 +129,20 @@ export const AdminOverviewPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Metric cards */}
+      {/* Metric cards — every card links to the page behind its number. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total contributors" value={String(metrics?.total_contributors ?? '—')} icon={Users} gradient="from-[#168BFF] to-[#20C4E8]" shadow="shadow-lg shadow-blue-500/25" />
-        <StatCard label="Businesses" value={String(metrics?.total_businesses ?? '—')} icon={Megaphone} gradient="from-emerald-500 to-teal-600" shadow="shadow-lg shadow-emerald-500/25" />
-        <StatCard label="Active campaigns" value={String(metrics?.active_campaigns ?? '—')} icon={Activity} gradient="from-violet-500 to-purple-600" shadow="shadow-lg shadow-violet-500/25" />
-        <StatCard label="Open fraud alerts" value={String(metrics?.fraud_alerts_count ?? '—')} icon={ShieldCheck} gradient="from-red-500 to-rose-600" shadow="shadow-lg shadow-red-500/25" />
+        <StatCard to="/admin/users?role=contributor" label="Total contributors" value={String(metrics?.total_contributors ?? '—')} icon={Users} gradient="from-[#168BFF] to-[#20C4E8]" shadow="shadow-lg shadow-blue-500/25" />
+        <StatCard to="/admin/businesses" label="Businesses" value={String(metrics?.total_businesses ?? '—')} icon={Megaphone} gradient="from-emerald-500 to-teal-600" shadow="shadow-lg shadow-emerald-500/25" />
+        <StatCard to="/admin/campaigns" label="Active campaigns" value={String(metrics?.active_campaigns ?? '—')} icon={Activity} gradient="from-violet-500 to-purple-600" shadow="shadow-lg shadow-violet-500/25" />
+        <StatCard to="/admin/fraud" label="Open fraud alerts" value={String(metrics?.fraud_alerts_count ?? '—')} icon={ShieldCheck} gradient="from-red-500 to-rose-600" shadow="shadow-lg shadow-red-500/25" />
       </div>
 
       {/* Revenue */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total revenue (fees)" value={fmt(metrics?.total_revenue_cents ?? 0)} icon={DollarSign} gradient="from-amber-500 to-orange-600" shadow="shadow-lg shadow-amber-500/25" />
-        <StatCard label="Today's revenue" value={fmt(metrics?.today_revenue_cents ?? 0)} icon={TrendingUp} gradient="from-emerald-500 to-teal-600" shadow="shadow-lg shadow-emerald-500/25" />
-        <StatCard label="Pending deposits" value={String(metrics?.pending_deposits ?? '—')} icon={Wallet} gradient="from-[#7257FF] to-[#9D7BFF]" shadow="shadow-lg shadow-violet-500/25" />
-        <StatCard label="Pending payouts" value={String(metrics?.pending_payouts ?? '—')} icon={Receipt} gradient="from-sky-500 to-blue-600" shadow="shadow-lg shadow-sky-500/25" />
+        <StatCard to="/admin/reports" label="Total revenue (fees)" value={fmt(metrics?.total_revenue_cents ?? 0)} icon={DollarSign} gradient="from-amber-500 to-orange-600" shadow="shadow-lg shadow-amber-500/25" />
+        <StatCard to="/admin/reports" label="Today's revenue" value={fmt(metrics?.today_revenue_cents ?? 0)} icon={TrendingUp} gradient="from-emerald-500 to-teal-600" shadow="shadow-lg shadow-emerald-500/25" />
+        <StatCard to="/admin/deposits" label="Pending deposits" value={String(metrics?.pending_deposits ?? '—')} icon={Wallet} gradient="from-[#7257FF] to-[#9D7BFF]" shadow="shadow-lg shadow-violet-500/25" />
+        <StatCard to="/admin/withdrawals" label="Pending payouts" value={String(metrics?.pending_payouts ?? '—')} icon={Receipt} gradient="from-sky-500 to-blue-600" shadow="shadow-lg shadow-sky-500/25" />
       </div>
 
       {/* Revenue chart */}
