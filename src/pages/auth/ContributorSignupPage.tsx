@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   ArrowRight,
@@ -26,7 +26,8 @@ import {
   PhoneField,
 } from '../../components/auth/PhoneInput';
 import { phoneDigits, validatePhone, type PhoneValue } from '../../utils/phone';
-import { DEFAULT_DIAL, findCountryDialByDial } from '../../utils/countryDialCodes';
+import { DEFAULT_DIAL, findCountryDialByDial, findCountryDialByIso } from '../../utils/countryDialCodes';
+import { detectVisitorCountry } from '../../utils/visitorCountry';
 import { CountrySelect } from '../../components/auth/CountrySelect';
 import { setPendingOtpEmail } from '../../utils/pendingAuth';
 
@@ -43,6 +44,27 @@ export const ContributorSignupPage: React.FC = () => {
   /** Once the user picks a country, the phone code no longer changes it. */
   const [countryTouched, setCountryTouched] = useState(false);
   const [phone, setPhone] = useState<PhoneValue>({ dialCode: DEFAULT_DIAL, number: '' });
+  /** Has the user picked a country / dial code themselves? The IP default
+      below must never overwrite their choice. */
+  const userPickedCountryRef = useRef(false);
+
+  /* Default country + phone dial from the visitor's IP location (a visitor
+     in Dubai sees UAE +971, not Georgia +995). Runs once on mount; only
+     applies while the user hasn't touched country or dial, and only while
+     the phone number is still empty. */
+  useEffect(() => {
+    let cancelled = false;
+    void detectVisitorCountry().then((iso) => {
+      if (cancelled || !iso || userPickedCountryRef.current) return;
+      const match = findCountryDialByIso(iso);
+      if (!match) return;
+      setCountry(match.iso);
+      setPhone((prev) => (prev.number === '' ? { dialCode: match.dial, number: '' } : prev));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [referralCode, setReferralCode] = useState(refCodeFromUrl);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +234,7 @@ export const ContributorSignupPage: React.FC = () => {
           label="Phone number"
           value={phone}
           onChange={(v) => {
+            if (v.dialCode !== phone.dialCode) userPickedCountryRef.current = true;
             setPhone(v);
             if (!countryTouched) {
               const match = findCountryDialByDial(v.dialCode);
@@ -234,6 +257,7 @@ export const ContributorSignupPage: React.FC = () => {
               id="country"
               value={country}
               onChange={(iso) => {
+                userPickedCountryRef.current = true;
                 setCountry(iso);
                 setCountryTouched(true);
               }}

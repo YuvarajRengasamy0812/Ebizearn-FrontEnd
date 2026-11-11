@@ -61,8 +61,6 @@ interface GsiIdConfiguration {
   context?: 'signin' | 'signup' | 'use';
   /** UX flow of the rendered Sign In With Google button. Default is 'popup'. */
   ux_mode?: 'popup' | 'redirect';
-  /** Use the browser-native FedCM account chooser on Chrome (no popup window). */
-  use_fedcm_for_button?: boolean;
 }
 
 interface GsiButtonConfiguration {
@@ -170,9 +168,15 @@ const GooglePlaceholder: React.FC<{ verb: string; dark: boolean }> = ({ verb, da
 );
 
 /**
- * Official Google button (Google Identity Services, popup / FedCM chooser —
- * never a new tab). A Google-styled placeholder holds the 44px slot until
- * the real button has painted, so nothing flashes or jumps.
+ * Official Google button (Google Identity Services, popup — never a new
+ * tab). A Google-styled placeholder holds the 44px slot until the real
+ * button has painted, so nothing flashes or jumps.
+ *
+ * NOTE: FedCM is deliberately NOT enabled (no `use_fedcm_for_button`):
+ * with it on, the button renders but the click can silently do nothing
+ * on browsers where FedCM is unavailable or blocked — no popup, no
+ * error, no navigation. The classic popup flow does not have that
+ * failure mode.
  */
 const GoogleButton: React.FC<{ clientId: string; mode: Mode; onToken: (idToken: string) => void }> = ({ clientId, mode, onToken }) => {
   const { theme } = useTheme();
@@ -198,6 +202,7 @@ const GoogleButton: React.FC<{ clientId: string; mode: Mode; onToken: (idToken: 
     let cancelled = false;
     let resizeTimer: number | undefined;
     let revealTimer: number | undefined;
+    let watchdogTimer: number | undefined;
 
     const measure = () => Math.min(400, Math.max(200, Math.floor(container.clientWidth) || 320));
     // Record the width BEFORE the async script load so the ResizeObserver's
@@ -219,7 +224,6 @@ const GoogleButton: React.FC<{ clientId: string; mode: Mode; onToken: (idToken: 
             auto_select: false,
             cancel_on_tap_outside: true,
             context: mode === 'register' ? 'signup' : 'signin',
-            use_fedcm_for_button: true,
           });
           initializedClientId = clientId;
         }
@@ -244,6 +248,17 @@ const GoogleButton: React.FC<{ clientId: string; mode: Mode; onToken: (idToken: 
         const reveal = () => !cancelled && setGisReady(true);
         if (iframe) iframe.addEventListener('load', () => window.setTimeout(reveal, 60), { once: true });
         revealTimer = window.setTimeout(reveal, 1500);
+
+        // Watchdog: if Google never paints its button (SDK blocked, or
+        // this origin is not allowed for the client id), the slot must
+        // not sit there silently dead — say so out loud instead.
+        window.clearTimeout(watchdogTimer);
+        watchdogTimer = window.setTimeout(() => {
+          if (cancelled || !containerRef.current) return;
+          if (!containerRef.current.querySelector('iframe')) {
+            toast.error('Google sign-in could not be loaded. Please check your connection or use email sign-in.');
+          }
+        }, 4000);
       } catch {
         if (!cancelled) toast.error('Google sign-in could not be loaded. Please check your connection or use email sign-in.');
       }
@@ -264,6 +279,7 @@ const GoogleButton: React.FC<{ clientId: string; mode: Mode; onToken: (idToken: 
       cancelled = true;
       window.clearTimeout(resizeTimer);
       window.clearTimeout(revealTimer);
+      window.clearTimeout(watchdogTimer);
       observer.disconnect();
       container.innerHTML = '';
     };
@@ -273,9 +289,11 @@ const GoogleButton: React.FC<{ clientId: string; mode: Mode; onToken: (idToken: 
 
   return (
     <div className="relative w-full h-11" role="group" aria-label={`${verb} with Google`}>
+      {/* The placeholder is decorative only — it must never intercept a
+          click meant for the real Google button underneath it. */}
       <div
         aria-hidden="true"
-        className={`absolute inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[400px] transition-opacity duration-200 ${gisReady ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+        className={`pointer-events-none absolute inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-[400px] transition-opacity duration-200 ${gisReady ? 'opacity-0' : 'opacity-100'}`}
       >
         <GooglePlaceholder verb={verb} dark={theme === 'dark'} />
       </div>

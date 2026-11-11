@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -25,7 +25,8 @@ import {
   PhoneField,
 } from '../../components/auth/PhoneInput';
 import { phoneDigits, validatePhone, type PhoneValue } from '../../utils/phone';
-import { DEFAULT_DIAL } from '../../utils/countryDialCodes';
+import { DEFAULT_DIAL, findCountryDialByIso } from '../../utils/countryDialCodes';
+import { detectVisitorCountry } from '../../utils/visitorCountry';
 import { setPendingOtpEmail } from '../../utils/pendingAuth';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -75,6 +76,25 @@ export const BusinessSignupPage: React.FC = () => {
   const [website, setWebsite] = useState('');
   const [industry, setIndustry] = useState('Tech & SaaS');
   const [phone, setPhone] = useState<PhoneValue>({ dialCode: DEFAULT_DIAL, number: '' });
+  /** Has the user picked a dial code themselves? The IP default below
+      must never overwrite their choice. */
+  const userPickedDialRef = useRef(false);
+
+  /* Default phone dial from the visitor's IP location (a visitor in Dubai
+     sees +971, not +995). Runs once on mount; only applies while the user
+     hasn't touched the dial, and only while the number is still empty. */
+  useEffect(() => {
+    let cancelled = false;
+    void detectVisitorCountry().then((iso) => {
+      if (cancelled || !iso || userPickedDialRef.current) return;
+      const match = findCountryDialByIso(iso);
+      if (!match) return;
+      setPhone((prev) => (prev.number === '' ? { dialCode: match.dial, number: '' } : prev));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [referralCode, setReferralCode] = useState('');
   const [password, setPassword] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -250,6 +270,7 @@ export const BusinessSignupPage: React.FC = () => {
           label="Business phone"
           value={phone}
           onChange={(v) => {
+            if (v.dialCode !== phone.dialCode) userPickedDialRef.current = true;
             setPhone(v);
             if (fieldErrors.phone) {
               const next = { ...fieldErrors };
