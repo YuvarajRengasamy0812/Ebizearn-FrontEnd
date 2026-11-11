@@ -107,26 +107,26 @@ export const CampaignContentPanel: React.FC<{ campaign: Campaign; onChanged: (c:
 
       {!editing ? (
         <>
+          {/* Post image — always shown, not only with post text. The image
+              is the creative itself; image-only campaigns need it too. */}
+          {canEdit ? (
+            <PostImagePicker
+              currentUrl={campaign.content_image_url}
+              file={null}
+              busy={imageBusy}
+              error={imageError}
+              onFile={(f) => {
+                if (f) void changeImage(() => adminApi.uploadCampaignContentImage(campaign.id, f));
+              }}
+              onRemoveCurrent={() => void changeImage(() => adminApi.removeCampaignContentImage(campaign.id))}
+            />
+          ) : campaign.content_image_url ? (
+            <img src={campaign.content_image_url} alt="Post image" className="w-full max-h-72 object-contain rounded-xl bg-white dark:bg-white/5" />
+          ) : null}
           {campaign.content_mode ? (
-            <>
-              {canEdit ? (
-                <PostImagePicker
-                  currentUrl={campaign.content_image_url}
-                  file={null}
-                  busy={imageBusy}
-                  error={imageError}
-                  onFile={(f) => {
-                    if (f) void changeImage(() => adminApi.uploadCampaignContentImage(campaign.id, f));
-                  }}
-                  onRemoveCurrent={() => void changeImage(() => adminApi.removeCampaignContentImage(campaign.id))}
-                />
-              ) : campaign.content_image_url ? (
-                <img src={campaign.content_image_url} alt="Post image" className="w-full max-h-72 object-contain rounded-xl bg-white dark:bg-white/5" />
-              ) : null}
-              <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words bg-white dark:bg-white/5 rounded-xl p-3">
-                {campaign.generated_content}
-              </p>
-            </>
+            <p className="text-sm text-gray-700 dark:text-gray-200 whitespace-pre-wrap break-words bg-white dark:bg-white/5 rounded-xl p-3">
+              {campaign.generated_content}
+            </p>
           ) : (
             <p className="text-xs text-gray-500 dark:text-gray-400">No post text — contributors follow the instructions only.</p>
           )}
