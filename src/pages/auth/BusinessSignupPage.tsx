@@ -28,46 +28,11 @@ import { phoneDigits, validatePhone, type PhoneValue } from '../../utils/phone';
 import { DEFAULT_DIAL, findCountryDialByIso } from '../../utils/countryDialCodes';
 import { detectVisitorCountry } from '../../utils/visitorCountry';
 import { setPendingOtpEmail } from '../../utils/pendingAuth';
+import { INDUSTRIES } from '../../utils/industries';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STRONG_PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}$/;
 
-const INDUSTRIES = [
-  'Tech & SaaS',
-  'Forex Broker',
-  'Crypto Exchange',
-  'Crypto & Web3 Project',
-  'Trading & Investment Platform',
-  'Fintech & Payments',
-  'Banking & Finance',
-  'Insurance',
-  'E-Commerce',
-  'Retail & Consumer Brands',
-  'Mobile Apps',
-  'Gaming & Esports',
-  'iGaming & Betting',
-  'Media & Entertainment',
-  'Digital Marketing Agency',
-  'Influencer & Creator Brand',
-  'Education & E-Learning',
-  'Health & Wellness',
-  'Beauty & Personal Care',
-  'Fashion & Apparel',
-  'Food & Beverage',
-  'Restaurants & Delivery',
-  'Travel & Hospitality',
-  'Real Estate',
-  'Automotive',
-  'Telecom & Internet',
-  'Logistics & Transport',
-  'Manufacturing',
-  'Energy & Utilities',
-  'Professional Services',
-  'Recruitment & HR',
-  'Non-Profit & NGO',
-  'Government & Public Sector',
-  'Other',
-];
 
 export const BusinessSignupPage: React.FC = () => {
   const [name, setName] = useState('');

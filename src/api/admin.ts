@@ -176,7 +176,27 @@ export const adminApi = {
     website?: string;
     industry?: string;
     country_code?: string;
+    phone_country_code?: string;
+    phone_number?: string;
+    referral_code?: string;
+    /** Admin / moderator: the exact staff access the account gets. */
+    permissions?: string[];
   }) => api.post('/admin/users', payload).then((r) => r.data as { success: boolean; message?: string; data: User }),
+  // What the Create user form may offer the signed-in staff member.
+  createUserOptions: () =>
+    api.get('/admin/users/create-options').then(
+      (r) =>
+        r.data as {
+          success: boolean;
+          message?: string;
+          data: {
+            roles: string[];
+            role_permissions: Record<string, string[]>;
+            permissions: { name: string; label: string; group: string }[];
+            grantable: string[] | null;
+          };
+        },
+    ),
   createBusinessUser: (payload: { name: string; email: string; password: string; company_name: string; website?: string; industry?: string; country_code?: string }) =>
     api.post('/admin/businesses', payload).then((r) => r.data as { success: boolean; message?: string; data: User }),
   // Restore the canonical task-type catalog when the table is empty (superadmin).
