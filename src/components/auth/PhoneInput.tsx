@@ -62,9 +62,6 @@ export const PhoneField: React.FC<PhoneFieldProps> = ({
     if (!autoDetect) return;
     let cancelled = false;
     detectCountryIso(3000).then((iso) => {
-      // TEMP DIAGNOSTIC (2026-11-11, remove after): append so both the
-      // page effect and this field effect are visible in the tab title.
-      document.title += ` | phone:${iso ?? 'null'}:touched:${userTouchedRef.current}`;
       if (cancelled || userTouchedRef.current || !iso) return;
       const match = findCountryDialByIso(iso);
       if (match && match.dial !== DEFAULT_DIAL) {

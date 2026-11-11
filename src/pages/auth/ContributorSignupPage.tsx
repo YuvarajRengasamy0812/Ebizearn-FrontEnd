@@ -55,10 +55,6 @@ export const ContributorSignupPage: React.FC = () => {
   useEffect(() => {
     let cancelled = false;
     void detectVisitorCountry().then((iso) => {
-      // TEMP DIAGNOSTIC (2026-11-11, remove after): the form still shows
-      // Georgia +995 live even though the probe page proves the lookup
-      // returns AE in-page — record what this effect actually sees.
-      document.title = `geo:${iso ?? 'null'}:cancelled:${cancelled}:picked:${userPickedCountryRef.current}`;
       if (cancelled || !iso || userPickedCountryRef.current) return;
       const match = findCountryDialByIso(iso);
       if (!match) return;
