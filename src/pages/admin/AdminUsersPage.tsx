@@ -1,9 +1,13 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Users, Search, Ban, CheckCircle2, AlertCircle, Loader2, Eye } from 'lucide-react';
+import { Users, Search, Ban, CheckCircle2, AlertCircle, Loader2, Eye, UserPlus } from 'lucide-react';
 import { adminApi, getApiError } from '../../api';
 import type { User } from '../../types';
 import { EmptyState } from '../../components/common/EmptyState';
+import { CreateUserModal, creatableRolesFor } from '../../components/admin/CreateUserModal';
+import { useAuth } from '../../context/AuthContext';
+import { can } from '../../utils/can';
+import { toast } from '../../utils/toast';
 
 /**
  * User directory. Everything comes from GET /admin/users (search + role
@@ -27,7 +31,10 @@ export const AdminUsersPage: React.FC = () => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [actionId, setActionId] = useState<number | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
-
+  const [showCreate, setShowCreate] = useState(false);
+  const { user: me } = useAuth();
+  // Super Admin creates every role; staff granted create_users create roles below their own.
+  const canCreate = can(me, 'create_users') && creatableRolesFor(me).length > 0;
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
@@ -96,13 +103,36 @@ export const AdminUsersPage: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Users & KYC</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Every user on the platform, served live. Review identity documents in the{' '}
-          <Link to="/admin/kyc" className="text-[#168BFF] dark:text-blue-300 font-bold hover:underline">KYC Review</Link> queue.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-gray-900 dark:text-gray-100 tracking-tight">Users & KYC</h1>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+            Every user on the platform, served live. Review identity documents in the{' '}
+            <Link to="/admin/kyc" className="text-[#168BFF] dark:text-blue-300 font-bold hover:underline">KYC Review</Link> queue.
+          </p>
+        </div>
+        {canCreate && (
+          <button
+            type="button"
+            onClick={() => setShowCreate(true)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-white bg-[#168BFF] hover:bg-[#0f7ae5] transition-colors shrink-0"
+          >
+            <UserPlus className="w-4 h-4" /> Create user
+          </button>
+        )}
       </div>
+
+      {showCreate && (
+        <CreateUserModal
+          actor={me}
+          defaultRole={role !== 'all' ? role : undefined}
+          onClose={() => setShowCreate(false)}
+          onCreated={(u) => {
+            toast.success(`${u.name} created.`);
+            void load();
+          }}
+        />
+      )}
 
       <div className="bg-white dark:bg-[#0C1322] rounded-2xl border border-gray-200 dark:border-white/10 shadow-xs p-4 flex flex-col sm:flex-row sm:items-center gap-3">
         <div className="flex gap-2 flex-wrap">

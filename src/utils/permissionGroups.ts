@@ -23,7 +23,7 @@ export const RELEVANT_GROUPS: Record<string, PermissionGroup[]> = {
  * the Roles & Permissions matrix.
  */
 export const ADMIN_SECTIONS: { label: string; path: string; perms: string[] }[] = [
-  { label: 'Users & KYC', path: '/admin/users', perms: ['manage_users', 'create_business_users', 'manual_kyc_approve'] },
+  { label: 'Users & KYC', path: '/admin/users', perms: ['manage_users', 'create_users', 'create_business_users', 'manual_kyc_approve'] },
   { label: 'KYC Review', path: '/admin/kyc', perms: ['review_kyc'] },
   { label: 'Social Channels', path: '/admin/social-channels', perms: ['review_social_channels'] },
   { label: 'Businesses', path: '/admin/businesses', perms: ['manage_businesses'] },

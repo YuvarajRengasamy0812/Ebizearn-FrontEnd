@@ -166,6 +166,17 @@ export const adminApi = {
   staffBusinessOptions: () =>
     api.get('/staff/campaigns/business-options').then((r) => r.data as { success: boolean; message?: string; data: StaffBusinessOption[] }),
   // Create a business user account (create_business_users). Role is fixed server-side.
+  // Create a user of any allowed role from Users & KYC (create_users).
+  createUser: (payload: {
+    role: 'contributor' | 'business' | 'moderator' | 'admin' | 'superadmin';
+    name: string;
+    email: string;
+    password: string;
+    company_name?: string;
+    website?: string;
+    industry?: string;
+    country_code?: string;
+  }) => api.post('/admin/users', payload).then((r) => r.data as { success: boolean; message?: string; data: User }),
   createBusinessUser: (payload: { name: string; email: string; password: string; company_name: string; website?: string; industry?: string; country_code?: string }) =>
     api.post('/admin/businesses', payload).then((r) => r.data as { success: boolean; message?: string; data: User }),
   // Restore the canonical task-type catalog when the table is empty (superadmin).
